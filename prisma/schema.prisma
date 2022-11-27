@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PreEnrollmentStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+// USER
+
+model Profile {
+  id           String   @id @default(uuid())
+  cpf          String
+  completeName String
+  birthDate    String
+  phone        String
+  avatar       String?
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("profiles")
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  password           String
+  passwordResetToken String?
+  isAdmin            Boolean   @default(false)
+  profile            Profile?
+  profileId          String?
+  student            Student?
+  educator           Educator?
+  comments           Comment[]
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("users")
+}
+
+// STUDENT
+
+model Student {
+  id             String          @id @default(uuid())
+  educators      Educator[]
+  enrollments    Enrollment[]
+  preEnrollments PreEnrollment[]
+  user           User            @relation(fields: [userId], references: [id])
+  userId         String          @unique
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("students")
+}
+
+// EDUCATOR
+
+model Educator {
+  id          String       @id @default(uuid())
+  students    Student[]
+  enrollments Enrollment[]
+  user        User         @relation(fields: [userId], references: [id])
+  userId      String       @unique
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("educators")
+}
+
+// ENROLLMENTS
+
+model Comment {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  description String
+  Class       Class[]
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("comments")
+}
+
+model Class {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  video       String
+  comments    Comment[]
+  Module      Module[]
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("classes")
+}
+
+model Module {
+  id           String      @id @default(uuid())
+  title        String
+  description  String
+  classes      Class[]
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String?
+
+  @@map("modules")
+}
+
+model Enrollment {
+  id             String          @id @default(uuid())
+  title          String
+  description    String
+  students       Student[]
+  educators      Educator[]
+  modules        Module[]
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+  preEnrollments PreEnrollment[]
+
+  @@map("enrollments")
+}
+
+model PreEnrollment {
+  id           String              @id @default(uuid())
+  enrollment   Enrollment          @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String
+  student      Student             @relation(fields: [studentId], references: [id])
+  studentId    String
+  status       PreEnrollmentStatus
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("pre_enrollments")
+}
